@@ -1,222 +1,193 @@
-import { Box, Button, Grid, Paper, TextField, Typography, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, InputLabel, FormControl } from "@mui/material";
+import {
+  Box, Button, Grid, MenuItem, Paper, Select, TextField, Typography, Dialog, DialogContent, DialogTitle
+} from "@mui/material";
 import { useState, useEffect } from "react";
+import { CheckCircle } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle } from "@mui/icons-material"; // Ícono de check
-import userData from "../api/local/pruebaUsuario.json"; // Asegúrate de que la ruta sea correcta
+import userData from "../api/local/pruebaUsuario.json"; // Ajusta la ruta según sea necesario
 
-const IngresoDinero = () => {
-  const [cvu, setCvu] = useState("");  // Cuenta seleccionada
-  const [monto, setMonto] = useState("");  // Monto a ingresar
-  const [mensaje, setMensaje] = useState("");  // Mensaje de estado
-  const [saldoDisponible, setSaldoDisponible] = useState(null);  // Saldo del usuario
-  const [loading, setLoading] = useState(true);  // Estado de carga
-  const [openDialog, setOpenDialog] = useState(false);  // Estado del popup
-  const [dialogMessage, setDialogMessage] = useState("");  // Mensaje del popup
-  const [dialogIcon, setDialogIcon] = useState(null); // Ícono del popup
+// Función para obtener el usuario por su ID
+const getUsuario = async (idUsuario) => {
+  return userData.find(user => user.id === idUsuario);  // Retorna el usuario correspondiente
+};
+
+// Función para actualizar el usuario en el archivo JSON (simulado)
+const actualizarUsuarios = (usuariosActualizados) => {
+  // Simula la actualización del archivo JSON (en un caso real, esto se haría con una API)
+  localStorage.setItem("usuarios", JSON.stringify(usuariosActualizados));
+};
+
+const metodosDeposito = [
+  { value: "Mercado Pago", label: "Mercado Pago" },
+  { value: "Banco de La Pampa", label: "Banco de La Pampa" },
+];
+
+const Deposito = ({ usuario, saldo: propSaldo, setSaldo }) => {
   const navigate = useNavigate();
 
-  // Obtener el usuario autenticado desde localStorage
-  const usuarioAutenticado = JSON.parse(localStorage.getItem("usuarioAutenticado"));
+  // "Variable global" dentro del componente
+  const idUsuario = usuario?.id;
 
-  // Verifica si el usuario está autenticado
-  const idUsuario = usuarioAutenticado ? usuarioAutenticado.id : null;
+  const [monto, setMonto] = useState("");
+  const [metodo, setMetodo] = useState("");
+  const [openDialog, setOpenDialog] = useState(false);
+  const [error, setError] = useState("");
+  const [saldoDisponibleLocal, setSaldoDisponibleLocal] = useState(propSaldo);
 
-  // Función para obtener el usuario por su ID
-  const getUsuario = async (idUsuario) => {
-    return userData.find(user => user.id === idUsuario);  // Retorna el usuario correspondiente
-  };
-
-  // Función para actualizar el usuario en el archivo JSON (simulado)
-  const actualizarUsuarios = (usuariosActualizados) => {
-    // Simula la actualización del archivo JSON (en un caso real, esto se haría con una API)
-    localStorage.setItem("usuarios", JSON.stringify(usuariosActualizados));
-  };
-
-  // Obtener el saldo del usuario
   useEffect(() => {
-    const obtenerUsuario = async () => {
-      if (!idUsuario) {
-        setMensaje("No se ha encontrado un usuario autenticado.");
-        setLoading(false);
-        return;
-      }
+    console.log("Prop usuario recibida en Deposito:", usuario);
+  }, []); // Se ejecuta solo una vez al montarse
 
-      try {
-        const usuario = await getUsuario(idUsuario);  // Obtener datos del usuario actual
-        if (usuario) {
-          const saldo = parseFloat(usuario.saldo);
-          if (!isNaN(saldo)) {
-            setSaldoDisponible(saldo);
-          } else {
-            setSaldoDisponible(0);
-          }
-        } else {
-          setMensaje("No se pudo encontrar el usuario.");
-        }
-        setLoading(false);
-      } catch (error) {
-        setMensaje("No se pudo cargar el saldo del usuario.");
-        setLoading(false);
-      }
-    };
+  useEffect(() => {
+    if (!idUsuario) return;
 
-    obtenerUsuario();
+    let usuariosGuardados = JSON.parse(localStorage.getItem("usuarios"));
+
+    if (!usuariosGuardados || usuariosGuardados.length === 0) {
+      usuariosGuardados = userData; // fallback al JSON estático
+    }
+
+    const usuarioEncontrado = usuariosGuardados.find(u => u.id === idUsuario);
+    if (usuarioEncontrado) {
+      const saldo = parseFloat(usuarioEncontrado.saldo);
+      setSaldoDisponibleLocal(isNaN(saldo) ? 0 : saldo);
+    } else {
+      setSaldoDisponibleLocal(0);
+    }
   }, [idUsuario]);
 
   const handleDepositar = () => {
-    if (!cvu || monto <= 0) {
-      setMensaje("Complete todos los campos correctamente.");
+    setError("");
+
+    if (!idUsuario) {
+      setError("No se ha podido identificar al usuario.");
       return;
     }
 
-    const montoIngresado = parseFloat(monto);
-    if (isNaN(montoIngresado)) {
-      setMensaje("El monto a ingresar no es válido.");
+    if (!monto || !metodo || parseFloat(monto) <= 0) {
+      setError("Complete todos los campos correctamente.");
       return;
     }
 
-    // Actualizar el saldo del usuario con el monto ingresado
-    const nuevoSaldo = saldoDisponible + montoIngresado;
-    const usuarioIndex = userData.findIndex(user => user.id === idUsuario);
-    if (usuarioIndex !== -1) {
-      userData[usuarioIndex].saldo = nuevoSaldo;
-      // Guardar los usuarios actualizados (en localStorage o archivo simulado)
-      actualizarUsuarios(userData);
+    // Obtener la lista de usuarios actual (desde localStorage o fallback)
+    let usuariosGuardados = JSON.parse(localStorage.getItem("usuarios")) || userData;
+
+    // Buscar al usuario logueado en la lista actual
+    const usuarioEncontrado = usuariosGuardados.find(user => user.id === idUsuario);
+
+    if (!usuarioEncontrado) {
+      setError("Usuario no encontrado en los datos.");
+      return;
     }
 
-    // Mostrar popup de éxito
-    setDialogMessage(`Ingreso de $${monto} realizado con éxito a la cuenta ${cvu}`);
+    // Sumar el monto al saldo
+    const nuevoSaldo = parseFloat(usuarioEncontrado.saldo) + parseFloat(monto);
+    usuarioEncontrado.saldo = nuevoSaldo;
 
-    setDialogIcon(<CheckCircle sx={{ color: "green", fontSize: 50 }} />);
+    // Guardar la lista actualizada en localStorage
+    actualizarUsuarios(usuariosGuardados);
+  
+    // guardar la lista en el json
+    // Simular la actualización del archivo JSON (en un caso real, esto se haría con una API)
+    localStorage.setItem("usuarios", JSON.stringify(usuariosGuardados));
+
+    // Actualizar el estado local y la prop de saldo
+    setSaldoDisponibleLocal(nuevoSaldo);
+    setSaldo(nuevoSaldo); // ¡Asegúrate de que esta línea esté aquí!
     setOpenDialog(true);
 
-    // Limpiar campos
-    setCvu("");
-    setMonto("");
-
-    // Redirigir automáticamente después de 2 segundos
     setTimeout(() => {
       setOpenDialog(false);
-      navigate("/home");  // Redirigir a la pantalla de inicio
+      navigate("/home");
     }, 2000);
+  };
+
+
+  const handleCancelar = () => {
+    navigate("/home");
   };
 
   return (
     <Box sx={{ padding: 3 }}>
       <Paper elevation={3} sx={{ padding: 4, maxWidth: 600, margin: "auto" }}>
         <Typography variant="h5" gutterBottom>
-          Ingreso de dinero
+          Depósito de Dinero
         </Typography>
 
-        {loading ? (
-          <Typography>Cargando datos del usuario...</Typography>
-        ) : (
-          <Grid container spacing={3}>
-            {/* Selección de cuenta */}
-            <Grid item xs={12}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel>Seleccionar CVU</InputLabel>
-                <Select
-                  label="Seleccionar CVU"
-                  value={cvu}
-                  onChange={(e) => setCvu(e.target.value)}
-                >
-                  <MenuItem value="mercadoPago">
-                    <Typography
-                      noWrap
-                      sx={{
-                        maxWidth: "200px", // Limitar el tamaño del texto
-                        overflow: "hidden", 
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      Mercado Pago
-                    </Typography>
+        <Grid container spacing={2} direction="column">
+          <Grid item container spacing={2} direction="row" alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Select
+                value={metodo}
+                onChange={(e) => setMetodo(e.target.value)}
+                displayEmpty
+                fullWidth
+                sx={{ minHeight: "56px", width: "100%" }}
+              >
+                <MenuItem value="" disabled>
+                  Seleccionar método de depósito
+                </MenuItem>
+                {metodosDeposito.map((metodo) => (
+                  <MenuItem key={metodo.value} value={metodo.value}>
+                    {metodo.label}
                   </MenuItem>
-                  <MenuItem value="bancoPampa">
-                    <Typography
-                      noWrap
-                      sx={{
-                        maxWidth: "200px", // Limitar el tamaño del texto
-                        overflow: "hidden", 
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      Banco de La Pampa
-                    </Typography>
-                  </MenuItem>
-                  {/* Agrega aquí más cuentas si es necesario */}
-                </Select>
-              </FormControl>
+                ))}
+              </Select>
             </Grid>
-
-            {/* Monto a ingresar */}
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
-                label="Monto a ingresar"
+                label="Monto a depositar"
                 type="number"
                 fullWidth
                 value={monto}
                 onChange={(e) => setMonto(e.target.value)}
-                variant="outlined"
                 InputProps={{ inputProps: { min: 0 } }}
               />
             </Grid>
+          </Grid>
 
-            {/* Saldo disponible */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" color="textSecondary">
-                Saldo disponible: ${saldoDisponible}
-              </Typography>
+          <Grid item sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" color="textSecondary">
+              Saldo disponible: ${saldoDisponibleLocal}
+            </Typography>
+          </Grid>
+
+          {error && (
+            <Grid item>
+              <Typography color="error">{error}</Typography>
             </Grid>
+          )}
 
-            {mensaje && (
-              <Grid item xs={12}>
-                <Typography variant="body1" color="primary">
-                  {mensaje}
-                </Typography>
-              </Grid>
-            )}
-
-            {/* Botones Aceptar y Cancelar */}
-            <Grid item xs={6}>
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                onClick={handleDepositar}
-              >
-                Aceptar
-              </Button>
-            </Grid>
-
-            <Grid item xs={6}>
-              <Button
-                variant="outlined"
-                fullWidth
-                size="large"
-                onClick={() => navigate("/home")}
-              >
+          <Grid item container spacing={2} direction="row" sx={{ mt: 3 }}>
+            <Grid item>
+              <Button onClick={handleCancelar}>
                 Cancelar
               </Button>
             </Grid>
+            <Grid item>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleDepositar}
+              >
+                Depositar
+              </Button>
+            </Grid>
           </Grid>
-        )}
+        </Grid>
       </Paper>
 
-      {/* Dialog (popup) para mostrar el mensaje de éxito */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Ingreso Exitoso</DialogTitle>
+        <DialogTitle>Depósito exitoso</DialogTitle>
         <DialogContent sx={{ textAlign: "center" }}>
-          {dialogIcon}
-          <Typography>{dialogMessage}</Typography>
+          <CheckCircle sx={{ fontSize: 50, color: "green" }} />
+          <Typography>
+            Se ha depositado ${monto} mediante {metodo}.
+          </Typography>
         </DialogContent>
-        <DialogActions>
-          {/* No es necesario botón, ya que se redirige automáticamente */}
-        </DialogActions>
       </Dialog>
     </Box>
   );
 };
 
-export default IngresoDinero;
+export default Deposito;

@@ -48,6 +48,9 @@ const Transferencia = () => {
         setLoading(false);
       }
     };
+    useEffect(() => {
+  console.log("Prop usuario recibida en Transferencia:", usuario);
+}, [usuario]);
 
     obtenerUsuario();
   }, [idUsuario]);
@@ -139,10 +142,24 @@ const Transferencia = () => {
               />
             </Grid>
 
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" color="textSecondary">
-                Saldo disponible: ${saldoDisponible}
-              </Typography>
+            <Grid container spacing={3} alignItems="center">
+              {/* Coloca el botón de Transferir a la izquierda */}
+              <Grid item xs={6}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  onClick={handleTransferir}
+                >
+                  Transferir
+                </Button>
+              </Grid>
+              {/* Coloca el saldo disponible a la derecha */}
+              <Grid item xs={6}>
+                <Typography variant="subtitle1" color="textSecondary" align="right">
+                  Saldo disponible: ${saldoDisponible}
+                </Typography>
+              </Grid>
             </Grid>
 
             {mensaje && (
@@ -152,17 +169,6 @@ const Transferencia = () => {
                 </Typography>
               </Grid>
             )}
-
-            <Grid item xs={12}>
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                onClick={handleTransferir}
-              >
-                Transferir
-              </Button>
-            </Grid>
           </Grid>
         )}
       </Paper>

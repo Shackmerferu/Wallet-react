@@ -5,7 +5,7 @@
       "email": "UsuarioAdmin@prueba.com",
       "password": "1234",
       "name": "UsuarioAdmin",
-      "saldo": 15000,
+      "saldo": 15000.00,
       "rol": "Administrador"
     },
     {

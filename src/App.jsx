@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Home from './componentes/Home';
 import LoginForm from './componentes/LoginForm';
 import { PrivateRoute } from './componentes/PrivateRoute';
-import Transferencia from './componentes/Transferencia'; // asegurate de importar Transferencia
+import Transferencia from './componentes/Transferencia';
 import Deposito from './componentes/Deposito'; // Importa el componente de Deposito
 
 const theme = createTheme({
@@ -28,7 +28,7 @@ function App() {
     if (usuarioGuardado) {
       const datos = JSON.parse(usuarioGuardado);
       setUsuario(datos);
-      setSaldo(datos.saldo); // suponiendo que guardás el saldo en el JSON
+      setSaldo(datos.saldo);
     }
   }, []);
 

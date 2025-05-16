@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logout, getUsuario } from '../servicios/authService';
@@ -16,41 +15,37 @@ const theme = createTheme({
   },
 });
 
-const Home = () => {
+const Home = ({ usuario: propUsuario, saldo: propSaldo, setSaldo }) => {
   const navigate = useNavigate();
-  const [usuario, setUsuario] = useState(null);
-  const [saldo, setSaldo] = useState(0);
+  const [localUsuario, setLocalUsuario] = useState(propUsuario);
+  const [localSaldo, setLocalSaldo] = useState(propSaldo);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        // Obtener datos del usuario autenticado
-        const response = await getUsuario();
-        
-        if (response.success) {
-          const userData = response.data;
-          setUsuario({
-            nombre: userData.name,
-            email: userData.email,
-            rol: userData.isAdmin ? 'Administrador' : 'Usuario'
-          });
-          
-          const userBalance = userData.saldo;
-          setSaldo(userBalance.toFixed(2));
-        } else {
-          throw new Error('No se pudo obtener los datos del usuario');
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error cargando datos:', error);
-        navigate('/');
+  const cargarDatos = async () => {
+    try {
+      const response = await getUsuario();
+      if (response.success) {
+        const userData = response.data;
+        setLocalUsuario({ ...userData, rol: userData.isAdmin ? 'Administrador' : 'Usuario' });
+        setLocalSaldo(userData.saldo.toFixed(2));
+        setSaldo(userData.saldo.toFixed(2)); // Asegura que el estado global se actualice al cargar
+      } else {
+        throw new Error('No se pudieron obtener los datos del usuario');
       }
-    };
+      setLoading(false);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      navigate('/');
+    }
+  };
 
+  useEffect(() => {
     cargarDatos();
-  }, [navigate]);
+  }, [navigate, setSaldo]);
+
+  useEffect(() => {
+    setLocalSaldo(propSaldo); // Actualiza el estado local cuando la prop saldo cambia
+  }, [propSaldo]);
 
   const handleLogout = () => {
     logout();
@@ -77,22 +72,22 @@ const Home = () => {
           <Grid container spacing={2} alignItems="center" sx={{ marginBottom: 3 }}>
             <Grid item>
               <Avatar sx={{ width: 56, height: 56 }}>
-                {usuario?.name?.charAt(0) || 'U'}
+                {localUsuario?.nombre?.charAt(0) || 'U'}
               </Avatar>
             </Grid>
             <Grid item xs>
-              <Typography variant="h5">{usuario?.nombre || 'Usuario'}</Typography>
+              <Typography variant="h5">{localUsuario?.nombre || 'Usuario'}</Typography>
               <Typography variant="subtitle1" color="textSecondary">
-                {usuario?.email}
+                {localUsuario?.email}
               </Typography>
               <Typography variant="subtitle2" color="textSecondary">
-                {usuario?.rol}
+                {localUsuario?.rol}
               </Typography>
             </Grid>
             <Grid item>
-              <Button 
-                variant="contained" 
-                color="secondary" 
+              <Button
+                variant="contained"
+                color="secondary"
                 onClick={handleLogout}
               >
                 Cerrar sesión
@@ -106,9 +101,8 @@ const Home = () => {
               Saldo actual
             </Typography>
             <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-              ${saldo}
+              ${localSaldo}
             </Typography>
-
           </Paper>
 
           {/* Acciones */}
