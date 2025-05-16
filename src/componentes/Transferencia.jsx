@@ -1,62 +1,30 @@
 import { Box, Button, Grid, Paper, TextField, Typography, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle } from "@mui/icons-material"; // Ícono de check
-import userData from "../api/local/pruebaUsuario.json"; // Ajusta la ruta según sea necesario
+import { CheckCircle } from "@mui/icons-material";
+import userData from "../api/local/pruebaUsuario.json";
 
-// Función para obtener el usuario por su ID
-const getUsuario = async (idUsuario) => {
-  return userData.find(user => user.id === idUsuario);  // Retorna el usuario correspondiente
-};
-
-// Función para actualizar el usuario en el archivo JSON (simulado)
 const actualizarUsuarios = (usuariosActualizados) => {
-  // Simula la actualización del archivo JSON (en un caso real, esto se haría con una API)
   localStorage.setItem("usuarios", JSON.stringify(usuariosActualizados));
 };
 
-const Transferencia = () => {
-  const [cvu, setCvu] = useState("");  // CVU o alias del destinatario
-  const [monto, setMonto] = useState("");  // Monto a transferir
-  const [mensaje, setMensaje] = useState("");  // Mensaje de estado
-  const [saldoDisponible, setSaldoDisponible] = useState(null);  // Saldo del usuario
-  const [loading, setLoading] = useState(true);  // Estado de carga
-  const [openDialog, setOpenDialog] = useState(false);  // Estado del popup
-  const [dialogMessage, setDialogMessage] = useState("");  // Mensaje del popup
-  const [dialogIcon, setDialogIcon] = useState(null); // Ícono del popup
+const Transferencia = ({ usuario, saldo: propSaldo, setSaldo }) => {
+  const [cvu, setCvu] = useState("");
+  const [monto, setMonto] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [saldoDisponible, setSaldoDisponible] = useState(propSaldo); // Inicializa con la prop
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState("");
+  const [dialogIcon, setDialogIcon] = useState(null);
   const navigate = useNavigate();
-  const idUsuario = 1; // ID del usuario autenticado (puedes obtenerlo dinámicamente)
+  const idUsuario = usuario?.id;
 
-  // Obtener el saldo del usuario
   useEffect(() => {
-    const obtenerUsuario = async () => {
-      try {
-        const usuario = await getUsuario(idUsuario);  // Obtener datos del usuario actual
-        if (usuario) {
-          const saldo = parseFloat(usuario.saldo);
-          if (!isNaN(saldo)) {
-            setSaldoDisponible(saldo);
-          } else {
-            setSaldoDisponible(0);
-          }
-        } else {
-          setMensaje("No se pudo encontrar el usuario.");
-        }
-        setLoading(false);
-      } catch (error) {
-        setMensaje("No se pudo cargar el saldo del usuario.");
-        setLoading(false);
-      }
-    };
-    useEffect(() => {
-  console.log("Prop usuario recibida en Transferencia:", usuario);
-}, [usuario]);
-
-    obtenerUsuario();
-  }, [idUsuario]);
+    setSaldoDisponible(propSaldo);
+  }, [propSaldo]);
 
   const handleTransferir = () => {
-    if (!cvu || monto <= 0) {
+    if (!cvu || monto <= 0 || !idUsuario) {
       setMensaje("Complete todos los campos correctamente.");
       return;
     }
@@ -72,40 +40,39 @@ const Transferencia = () => {
       return;
     }
 
-    // Obtener el destinatario de la transferencia
-    const cuentaDestino = userData.find(user => user.name === cvu);
+    let usuariosGuardados = JSON.parse(localStorage.getItem("usuarios")) || userData;
+    const usuarioOrigenIndex = usuariosGuardados.findIndex(user => user.id === idUsuario);
+    const cuentaDestinoIndex = usuariosGuardados.findIndex(user => user.name === cvu);
 
-    if (!cuentaDestino) {
-      setMensaje("El CVU o Alias no existe.");
+    if (usuarioOrigenIndex === -1 || cuentaDestinoIndex === -1) {
+      setMensaje("Error al encontrar usuarios.");
       return;
     }
 
-    // Actualizar el saldo del usuario que realiza la transferencia
-    const nuevoSaldoOrigen = saldoDisponible - montoTransferido;
-    const usuarioOrigenIndex = userData.findIndex(user => user.id === idUsuario);
-    userData[usuarioOrigenIndex].saldo = nuevoSaldoOrigen;
+    const usuarioOrigen = { ...usuariosGuardados[usuarioOrigenIndex] };
+    const cuentaDestino = { ...usuariosGuardados[cuentaDestinoIndex] };
 
-    // Actualizar el saldo del destinatario
-    const nuevoSaldoDestino = cuentaDestino.saldo + montoTransferido;
-    const cuentaDestinoIndex = userData.findIndex(user => user.id === cuentaDestino.id);
-    userData[cuentaDestinoIndex].saldo = nuevoSaldoDestino;
+    usuarioOrigen.saldo -= montoTransferido;
+    cuentaDestino.saldo += montoTransferido;
 
-    // Guardar los usuarios actualizados (en localStorage o archivo simulado)
-    actualizarUsuarios(userData);
+    usuariosGuardados[usuarioOrigenIndex] = usuarioOrigen;
+    usuariosGuardados[cuentaDestinoIndex] = cuentaDestino;
 
-    // Mostrar popup de éxito
+    actualizarUsuarios(usuariosGuardados);
+    localStorage.setItem('usuarios_data', JSON.stringify(usuariosGuardados)); // Guarda la lista completa
+
+    setSaldo(usuarioOrigen.saldo); 
+
     setDialogMessage(`Transferencia de $${monto} realizada con éxito a ${cvu}`);
     setDialogIcon(<CheckCircle sx={{ color: "green", fontSize: 50 }} />);
     setOpenDialog(true);
 
-    // Limpiar campos
     setCvu("");
     setMonto("");
 
-    // Redirigir automáticamente después de 2 segundos
     setTimeout(() => {
       setOpenDialog(false);
-      navigate("/home");  // Redirigir a la pantalla de inicio
+      navigate("/home");
     }, 2000);
   };
 
@@ -116,64 +83,57 @@ const Transferencia = () => {
           Transferencia de dinero
         </Typography>
 
-        {loading ? (
-          <Typography>Cargando datos del usuario...</Typography>
-        ) : (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <TextField
-                label="CVU o Alias"
-                fullWidth
-                value={cvu}
-                onChange={(e) => setCvu(e.target.value)}
-                variant="outlined"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                label="Monto a transferir"
-                type="number"
-                fullWidth
-                value={monto}
-                onChange={(e) => setMonto(e.target.value)}
-                variant="outlined"
-                InputProps={{ inputProps: { min: 0 } }}
-              />
-            </Grid>
-
-            <Grid container spacing={3} alignItems="center">
-              {/* Coloca el botón de Transferir a la izquierda */}
-              <Grid item xs={6}>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  onClick={handleTransferir}
-                >
-                  Transferir
-                </Button>
-              </Grid>
-              {/* Coloca el saldo disponible a la derecha */}
-              <Grid item xs={6}>
-                <Typography variant="subtitle1" color="textSecondary" align="right">
-                  Saldo disponible: ${saldoDisponible}
-                </Typography>
-              </Grid>
-            </Grid>
-
-            {mensaje && (
-              <Grid item xs={12}>
-                <Typography variant="body1" color="primary">
-                  {mensaje}
-                </Typography>
-              </Grid>
-            )}
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <TextField
+              label="CVU o Alias"
+              fullWidth
+              value={cvu}
+              onChange={(e) => setCvu(e.target.value)}
+              variant="outlined"
+            />
           </Grid>
-        )}
+
+          <Grid item xs={12}>
+            <TextField
+              label="Monto a transferir"
+              type="number"
+              fullWidth
+              value={monto}
+              onChange={(e) => setMonto(e.target.value)}
+              variant="outlined"
+              InputProps={{ inputProps: { min: 0 } }}
+            />
+          </Grid>
+
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                onClick={handleTransferir}
+              >
+                Transferir
+              </Button>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="subtitle1" color="textSecondary" align="right">
+                Saldo disponible: ${saldoDisponible}
+              </Typography>
+            </Grid>
+          </Grid>
+
+          {mensaje && (
+            <Grid item xs={12}>
+              <Typography variant="body1" color="primary">
+                {mensaje}
+              </Typography>
+            </Grid>
+          )}
+        </Grid>
       </Paper>
 
-      {/* Dialog (popup) para mostrar el mensaje de éxito */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
         <DialogTitle>Transferencia Exitosa</DialogTitle>
         <DialogContent sx={{ textAlign: "center" }}>

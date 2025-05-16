@@ -1,3 +1,4 @@
+// En LoginForm.jsx
 import React, { useState, useEffect } from "react";
 import {
   TextField,
@@ -14,7 +15,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { login, getUsuario } from "../servicios/authService";
 import { useNavigate } from "react-router-dom";
 
-const LoginForm = ({ setUsuario, setSaldo }) => {
+const LoginForm = ({ setUsuario, setSaldo, setUsuariosData }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,25 +37,34 @@ const LoginForm = ({ setUsuario, setSaldo }) => {
   }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    try {
-      const result = await login(email, password);
-      if (result.success) {
-        console.log("Usuario autenticado:", result.data.user);
-        localStorage.setItem("authToken", result.data.token);
+  try {
+    const result = await login(email, password);
+    if (result.success) {
+      console.log("Usuario autenticado:", result.data.user);
+      localStorage.setItem("authToken", result.data.token);
+      localStorage.setItem("usuario", JSON.stringify(result.data.user));
 
-        // Actualiza el estado usuario en App.js
-        setUsuario(result.data.user);
-        setSaldo(result.data.user.saldo); // Actualiza también el saldo al iniciar sesión
+      // *** LOG 1: Verifica qué devuelve getUsuario ***
+      const usuariosResult = await getUsuario();
+      console.log("Resultado de getUsuario en LoginForm:", usuariosResult);
 
-        navigate("/home", { replace: true });
+      if (usuariosResult.success && usuariosResult.data) {
+        localStorage.setItem('usuarios_data', JSON.stringify(usuariosResult.data));
+        setUsuariosData(usuariosResult.data);
       }
-    } catch (err) {
-      setError(err.error || "Error al iniciar sesión");
+
+      setUsuario(result.data.user);
+      setSaldo(result.data.user.saldo);
+
+      navigate("/home", { replace: true });
     }
-  };
+  } catch (err) {
+    setError(err.error || "Error al iniciar sesión");
+  }
+};
 
   return (
     <Box

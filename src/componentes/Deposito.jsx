@@ -4,16 +4,9 @@ import {
 import { useState, useEffect } from "react";
 import { CheckCircle } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import userData from "../api/local/pruebaUsuario.json"; // Ajusta la ruta según sea necesario
+import userData from "../api/local/pruebaUsuario.json";
 
-// Función para obtener el usuario por su ID
-const getUsuario = async (idUsuario) => {
-  return userData.find(user => user.id === idUsuario);  // Retorna el usuario correspondiente
-};
-
-// Función para actualizar el usuario en el archivo JSON (simulado)
 const actualizarUsuarios = (usuariosActualizados) => {
-  // Simula la actualización del archivo JSON (en un caso real, esto se haría con una API)
   localStorage.setItem("usuarios", JSON.stringify(usuariosActualizados));
 };
 
@@ -24,37 +17,16 @@ const metodosDeposito = [
 
 const Deposito = ({ usuario, saldo: propSaldo, setSaldo }) => {
   const navigate = useNavigate();
-
-  // "Variable global" dentro del componente
   const idUsuario = usuario?.id;
-
   const [monto, setMonto] = useState("");
   const [metodo, setMetodo] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [error, setError] = useState("");
-  const [saldoDisponibleLocal, setSaldoDisponibleLocal] = useState(propSaldo);
+  const [saldoDisponibleLocal, setSaldoDisponibleLocal] = useState(propSaldo); // Inicializa con la prop
 
   useEffect(() => {
-    console.log("Prop usuario recibida en Deposito:", usuario);
-  }, []); // Se ejecuta solo una vez al montarse
-
-  useEffect(() => {
-    if (!idUsuario) return;
-
-    let usuariosGuardados = JSON.parse(localStorage.getItem("usuarios"));
-
-    if (!usuariosGuardados || usuariosGuardados.length === 0) {
-      usuariosGuardados = userData; // fallback al JSON estático
-    }
-
-    const usuarioEncontrado = usuariosGuardados.find(u => u.id === idUsuario);
-    if (usuarioEncontrado) {
-      const saldo = parseFloat(usuarioEncontrado.saldo);
-      setSaldoDisponibleLocal(isNaN(saldo) ? 0 : saldo);
-    } else {
-      setSaldoDisponibleLocal(0);
-    }
-  }, [idUsuario]);
+    setSaldoDisponibleLocal(propSaldo);
+  }, [propSaldo]);
 
   const handleDepositar = () => {
     setError("");
@@ -69,31 +41,23 @@ const Deposito = ({ usuario, saldo: propSaldo, setSaldo }) => {
       return;
     }
 
-    // Obtener la lista de usuarios actual (desde localStorage o fallback)
     let usuariosGuardados = JSON.parse(localStorage.getItem("usuarios")) || userData;
+    const usuarioEncontradoIndex = usuariosGuardados.findIndex(user => user.id === idUsuario);
 
-    // Buscar al usuario logueado en la lista actual
-    const usuarioEncontrado = usuariosGuardados.find(user => user.id === idUsuario);
-
-    if (!usuarioEncontrado) {
+    if (usuarioEncontradoIndex === -1) {
       setError("Usuario no encontrado en los datos.");
       return;
     }
 
-    // Sumar el monto al saldo
+    const usuarioEncontrado = { ...usuariosGuardados[usuarioEncontradoIndex] };
     const nuevoSaldo = parseFloat(usuarioEncontrado.saldo) + parseFloat(monto);
     usuarioEncontrado.saldo = nuevoSaldo;
+    usuariosGuardados[usuarioEncontradoIndex] = usuarioEncontrado;
 
-    // Guardar la lista actualizada en localStorage
     actualizarUsuarios(usuariosGuardados);
-  
-    // guardar la lista en el json
-    // Simular la actualización del archivo JSON (en un caso real, esto se haría con una API)
-    localStorage.setItem("usuarios", JSON.stringify(usuariosGuardados));
-
-    // Actualizar el estado local y la prop de saldo
-    setSaldoDisponibleLocal(nuevoSaldo);
-    setSaldo(nuevoSaldo); // ¡Asegúrate de que esta línea esté aquí!
+    localStorage.setItem('usuarios_data', JSON.stringify(usuariosGuardados)); // Guarda la lista completa
+    
+    setSaldo(nuevoSaldo);
     setOpenDialog(true);
 
     setTimeout(() => {
@@ -101,7 +65,6 @@ const Deposito = ({ usuario, saldo: propSaldo, setSaldo }) => {
       navigate("/home");
     }, 2000);
   };
-
 
   const handleCancelar = () => {
     navigate("/home");

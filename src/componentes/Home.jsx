@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout, getUsuario } from '../servicios/authService';
+import { logout } from '../servicios/authService';
 import { Button, Typography, Paper, Box, Grid, Avatar } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 const theme = createTheme({
-  palette: {
-    primary: {
+  palette: {primary: {
       main: '#1976d2',
     },
     secondary: {
@@ -15,37 +14,8 @@ const theme = createTheme({
   },
 });
 
-const Home = ({ usuario: propUsuario, saldo: propSaldo, setSaldo }) => {
+const Home = ({ usuario: propUsuario, saldo: saldo }) => {
   const navigate = useNavigate();
-  const [localUsuario, setLocalUsuario] = useState(propUsuario);
-  const [localSaldo, setLocalSaldo] = useState(propSaldo);
-  const [loading, setLoading] = useState(true);
-
-  const cargarDatos = async () => {
-    try {
-      const response = await getUsuario();
-      if (response.success) {
-        const userData = response.data;
-        setLocalUsuario({ ...userData, rol: userData.isAdmin ? 'Administrador' : 'Usuario' });
-        setLocalSaldo(userData.saldo.toFixed(2));
-        setSaldo(userData.saldo.toFixed(2)); // Asegura que el estado global se actualice al cargar
-      } else {
-        throw new Error('No se pudieron obtener los datos del usuario');
-      }
-      setLoading(false);
-    } catch (error) {
-      console.error('Error cargando datos:', error);
-      navigate('/');
-    }
-  };
-
-  useEffect(() => {
-    cargarDatos();
-  }, [navigate, setSaldo]);
-
-  useEffect(() => {
-    setLocalSaldo(propSaldo); // Actualiza el estado local cuando la prop saldo cambia
-  }, [propSaldo]);
 
   const handleLogout = () => {
     logout();
@@ -60,10 +30,6 @@ const Home = ({ usuario: propUsuario, saldo: propSaldo, setSaldo }) => {
     navigate('/deposito');
   };
 
-  if (loading) {
-    return <Typography>Cargando...</Typography>;
-  }
-
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ padding: 3 }}>
@@ -72,16 +38,16 @@ const Home = ({ usuario: propUsuario, saldo: propSaldo, setSaldo }) => {
           <Grid container spacing={2} alignItems="center" sx={{ marginBottom: 3 }}>
             <Grid item>
               <Avatar sx={{ width: 56, height: 56 }}>
-                {localUsuario?.nombre?.charAt(0) || 'U'}
+                {propUsuario?.nombre?.charAt(0) || 'U'}
               </Avatar>
             </Grid>
             <Grid item xs>
-              <Typography variant="h5">{localUsuario?.nombre || 'Usuario'}</Typography>
+              <Typography variant="h5">{propUsuario?.nombre || 'Usuario'}</Typography>
               <Typography variant="subtitle1" color="textSecondary">
-                {localUsuario?.email}
+                {propUsuario?.email}
               </Typography>
               <Typography variant="subtitle2" color="textSecondary">
-                {localUsuario?.rol}
+                {propUsuario?.rol}
               </Typography>
             </Grid>
             <Grid item>
@@ -101,7 +67,7 @@ const Home = ({ usuario: propUsuario, saldo: propSaldo, setSaldo }) => {
               Saldo actual
             </Typography>
             <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-              ${localSaldo}
+              ${saldo}
             </Typography>
           </Paper>
 
