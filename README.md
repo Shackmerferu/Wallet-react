@@ -1,12 +1,32 @@
-# React + Vite
+# Billetera Virtual
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web de billetera virtual desarrollada con React y Vite. Permite a los usuarios gestionar su saldo, registrar ingresos y egresos, y visualizar el historial de movimientos.
 
-Currently, two official plugins are available:
+## Características
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Registro y visualización de ingresos y egresos
+- Cálculo automático del saldo disponible
+- Historial de transacciones
+- Persistencia local (almacenamiento en `localStorage` o integración con API)
+- Interfaz responsiva y minimalista
 
-## Expanding the ESLint configuration
+## Tecnologías utilizadas
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- [React](https://reactjs.org/)
+- [Vite](https://vitejs.dev/)
+- [ESLint](https://eslint.org/)
+- [React Router DOM](https://reactrouter.com/) (si se usa navegación)
+- [Tailwind CSS](https://tailwindcss.com/) (opcional)
+
+## Instalación
+
+1. Clonar el repositorio:
+   ```
+   git clone https://github.com/Shackmerferu/Wallet-react.git
+   cd DigitalArs
+   npm install
+   npm run dev
+   npm run build
+   
+   #Es necesario utilizar el backend para manejar los correos existentes
+   
